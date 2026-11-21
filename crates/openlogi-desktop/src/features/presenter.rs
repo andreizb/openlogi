@@ -6,11 +6,12 @@
 //! actions from leaking into the generic mouse-button editor.
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use gpui::{
     Anchor, AnyElement, AppContext as _, Context, Entity, InteractiveElement as _, IntoElement,
     MouseButton, ParentElement, Render, StatefulInteractiveElement as _, Styled, Subscription,
-    Window, div, prelude::FluentBuilder as _, px, rgb,
+    Window, div, img, prelude::FluentBuilder as _, px, rgb,
 };
 use gpui_kit::component::{
     Disableable as _, IconName, Sizable as _,
@@ -257,6 +258,10 @@ impl Render for PresenterControlsView {
         let bindings = AppState::try_read(cx).map_or_else(BTreeMap::new, |state| {
             state.presenter_bindings_for_profile(profile.as_deref())
         });
+        let device_image = AppState::try_read(cx)
+            .and_then(AppState::current_record)
+            .and_then(|record| record.asset.as_ref())
+            .and_then(|asset| asset.hero_image_path.clone());
         if let Some(record) = AppState::try_read(cx).and_then(AppState::current_record) {
             let key = record.device_key();
             self.ensure_settings_sliders(key, profile.clone(), settings, cx);
@@ -321,6 +326,7 @@ impl Render for PresenterControlsView {
                     self.section,
                     settings,
                     &bindings,
+                    device_image,
                     pal,
                 )))
                 .child(
@@ -405,6 +411,7 @@ fn presenter_stage(
     section: PresenterSection,
     settings: PresenterSettings,
     bindings: &std::collections::BTreeMap<ButtonId, Action>,
+    device_image: Option<PathBuf>,
     pal: Palette,
 ) -> impl IntoElement {
     let pointer_label = match section {
@@ -440,22 +447,12 @@ fn presenter_stage(
                         .child(callout("Hold Back", &back, pal)),
                 )
                 .child(
-                    v_flex()
-                        .items_center()
-                        .gap_3()
-                        .w(px(112.))
-                        .h(px(390.))
-                        .py_5()
-                        .rounded(px(48.))
-                        .border_1()
-                        .border_color(pal.border)
-                        .bg(pal.control)
-                        .shadow_md()
-                        .child(device_button(40., "•", pal))
-                        .child(device_button(68., "›", pal))
-                        .child(device_button(42., "‹", pal))
-                        .child(div().flex_1())
-                        .child(div().w(px(32.)).h(px(3.)).rounded_full().bg(pal.border)),
+                    match device_image {
+                        Some(path) => img(path).w(px(112.)).h(px(390.)).into_any_element(),
+                        None => div().w(px(112.)).h(px(390.)).flex().items_center()
+                            .justify_center().child(muted(tr!("common.unavailable").to_string(), pal))
+                            .into_any_element(),
+                    },
                 )
                 .child(
                     v_flex()
@@ -494,21 +491,6 @@ fn callout(title: &str, value: &str, pal: Palette) -> impl IntoElement {
                 .child(title.to_string()),
         )
         .child(div().text_body().child(value.to_string()))
-}
-
-fn device_button(size: f32, label: &'static str, pal: Palette) -> impl IntoElement {
-    div()
-        .w(px(size))
-        .h(px(size))
-        .rounded_full()
-        .border_1()
-        .border_color(pal.border)
-        .bg(pal.panel)
-        .flex()
-        .items_center()
-        .justify_center()
-        .text_color(pal.text_primary)
-        .child(label)
 }
 
 #[expect(
