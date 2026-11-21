@@ -58,7 +58,7 @@ trap 'exit 129' HUP
 ref=${OPENLOGI_REF:-feat/spotlight-presenter}
 echo "Downloading OpenLogi ($ref)…"
 git clone --quiet --depth 1 --single-branch --branch "$ref" \
-  https://github.com/andreizb/OpenLogi.git "$work/source"
+  https://github.com/andreizb/openlogi.git "$work/source"
 cd "$work/source"
 echo "Source revision: $(git rev-parse HEAD)"
 
@@ -66,5 +66,9 @@ echo "Source revision: $(git rev-parse HEAD)"
 # inherited CARGO_TARGET_DIR so no build output escapes the disposable folder.
 export CARGO_TARGET_DIR="$work/source/target"
 export CARGO_INCREMENTAL=0
+# A disposable local build uses ThinLTO to avoid the cost of the upstream
+# distribution profile's whole-program optimisation on every invocation.
+export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-thin}"
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 cargo run --locked -p xtask -- macos install "$@"
 echo 'Installed and verified. Removing temporary source and build files.'

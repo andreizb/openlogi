@@ -15,7 +15,7 @@ timers and vibration. Hardware behavior needs a real presenter to verify.
 Review [run.sh](run.sh), then run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/andreizb/OpenLogi/feat/spotlight-presenter/run.sh | bash
+curl -fsSL https://raw.githubusercontent.com/andreizb/openlogi/feat/spotlight-presenter/run.sh | bash
 ```
 
 The same command installs a missing app or updates an existing one. It downloads
@@ -32,6 +32,8 @@ Requirements:
   Tools alone cannot build GPUI's shaders.
 - Homebrew. Missing Rust and `cargo-bundle` tools are installed through Homebrew.
   Those tools and shared Cargo download caches are retained for future runs.
+  Disposable builds default to ThinLTO and four parallel build jobs; explicit
+  `CARGO_PROFILE_RELEASE_LTO` and `CARGO_BUILD_JOBS` values override those defaults.
 - A local Apple Development or Developer ID signing certificate. Xcode can create
   an Apple Development certificate. For an existing app the runner selects its
   current certificate and refuses a different app/helper signing requirement.

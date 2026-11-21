@@ -1,6 +1,6 @@
 > **Spotlight fork:** This fork adds first-generation Logitech Spotlight presenter controls and effects to [AprilNEA/OpenLogi](https://github.com/AprilNEA/OpenLogi). See [the fork guide](FORK.md) for scope, installation and verification.
 >
-> macOS install/update: `curl -fsSL https://raw.githubusercontent.com/andreizb/OpenLogi/feat/spotlight-presenter/run.sh | bash`
+> macOS install/update: `curl -fsSL https://raw.githubusercontent.com/andreizb/openlogi/feat/spotlight-presenter/run.sh | bash`
 >
 > The runner builds in a temporary folder and installs a standalone app. Requires Homebrew, full Xcode 26+ with Metal, and a local signing certificate. Read [run.sh](run.sh) before running it.
 
