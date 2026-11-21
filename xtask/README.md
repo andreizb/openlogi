@@ -19,6 +19,10 @@ devenv shell -- cargo run -p xtask -- <command>
   agent and overlay helpers. Local builds use `OPENLOGI_LOCAL_CODESIGN_IDENTITY`
   or the first Apple Development identity in the keychain so macOS permission
   grants survive rebuilds.
+- `macos install [--destination /Applications/OpenLogi.app]` — build and verify a
+  local production app, preserve the installed signing identities, replace its
+  bundle with rollback on failed runtime verification, and start it independently
+  of the checkout. The root `run.sh` owns disposable download/build cleanup.
 - `macos dev-bundle --binary <path>` — wrap a freshly built desktop binary in
   `target/dev/OpenLogi.app`. Driven by the Cargo runner, not run by hand.
 - `macos dmg` — package an existing app bundle into the branded DMG.

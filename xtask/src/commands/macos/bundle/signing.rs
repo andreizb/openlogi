@@ -8,6 +8,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
+use strum::VariantArray as _;
 use xshell::{Shell, cmd};
 
 use super::identity::{Channel, Component};
@@ -18,6 +19,72 @@ use crate::support::fs::{ensure_file, repo_root};
 /// The Developer ID identity a release is signed with — read by the bundle
 /// step here and by `macos dmg`'s `--sign-identity`.
 pub(in crate::commands::macos) const SIGN_IDENTITY_ENV: &str = "OPENLOGI_SIGN_IDENTITY";
+
+/// Select the existing certificate before building, so a local update retains TCC grants.
+pub(in crate::commands::macos) fn identity_for_install(installed: &Path) -> Result<String> {
+    if let Some(identity) =
+        env_nonempty("OPENLOGI_LOCAL_CODESIGN_IDENTITY").or_else(|| env_nonempty(SIGN_IDENTITY_ENV))
+    {
+        return Ok(identity);
+    }
+    if installed.exists() {
+        let sh = Shell::new()?;
+        let output = cmd!(sh, "codesign -dv --verbose=4 {installed}").output()?;
+        if !output.status.success() {
+            bail!("the installed app has no readable signing identity; it was left untouched");
+        }
+        if let Some(identity) = first_authority(&String::from_utf8_lossy(&output.stderr)) {
+            return Ok(identity.to_owned());
+        }
+        bail!(
+            "the installed app is ad-hoc signed; select OPENLOGI_LOCAL_CODESIGN_IDENTITY explicitly"
+        );
+    }
+    first_apple_development_identity()?.ok_or_else(|| anyhow::anyhow!(
+        "no local signing certificate found; add an Apple Development certificate in Xcode first"
+    ))
+}
+
+fn first_authority(output: &str) -> Option<&str> {
+    output
+        .lines()
+        .find_map(|line| line.strip_prefix("Authority="))
+}
+
+fn designated_requirement(app: &Path) -> Result<String> {
+    let sh = Shell::new()?;
+    let output = cmd!(sh, "codesign -dr - {app}").output()?;
+    if !output.status.success() {
+        bail!("could not read {} signing requirement", app.display());
+    }
+    let text = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    text.lines()
+        .find(|line| line.starts_with("designated => "))
+        .map(str::to_owned)
+        .ok_or_else(|| anyhow::anyhow!("missing designated requirement for {}", app.display()))
+}
+
+/// Refuse to replace an app when any component would lose its existing privacy identity.
+pub(in crate::commands::macos) fn verify_update_identity(
+    installed: &Path,
+    replacement: &Path,
+) -> Result<()> {
+    if !installed.exists() {
+        return Ok(());
+    }
+    for component in Component::VARIANTS {
+        let old = component.root(installed, Channel::Production);
+        let new = component.root(replacement, Channel::Production);
+        if designated_requirement(&old)? != designated_requirement(&new)? {
+            bail!("{component} signing identity differs; the installed app was left untouched");
+        }
+    }
+    Ok(())
+}
 
 pub(super) fn local_sign_app_if_available(channel: Channel) -> Result<()> {
     if env::var("OPENLOGI_LOCAL_CODESIGN").as_deref() == Ok("0") {

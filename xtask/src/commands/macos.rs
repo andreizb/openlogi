@@ -1,6 +1,7 @@
 pub(crate) mod bundle;
 pub(crate) mod dev_bundle;
 pub(crate) mod dmg;
+mod install;
 
 use std::path::PathBuf;
 
@@ -19,6 +20,8 @@ pub(crate) enum Command {
     Icon,
     /// Build the OpenLogi.app bundle.
     Bundle(BundleArgs),
+    /// Build, install and verify a standalone local app, preserving its identity.
+    Install(install::Args),
     /// Wrap a freshly built desktop binary in `target/dev/OpenLogi.app`.
     /// Driven by the cargo runner; not normally run by hand.
     DevBundle(dev_bundle::Args),
@@ -128,6 +131,7 @@ pub(crate) fn run(command: Command) -> Result<()> {
     match command {
         Command::Icon => AppBundle.compile(),
         Command::Bundle(args) => bundle::run(args.channel),
+        Command::Install(args) => install::run(&args),
         Command::DevBundle(args) => dev_bundle::run(&args),
         Command::Dmg(args) => dmg::run(&args),
         Command::Package(args) => {

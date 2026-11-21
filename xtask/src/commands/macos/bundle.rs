@@ -28,6 +28,7 @@ use identity::{Channel, Component};
 pub(super) use embed::{EmbeddedHelper, HELPERS, agent_service_label, write_agent_launch_plist};
 pub(super) use provisioning::{AGENT_PROFILE_ENV, AgentProfile};
 pub(super) use signing::{SIGN_IDENTITY_ENV, quoted_identity};
+pub(super) use signing::{identity_for_install, verify_update_identity};
 
 #[derive(Clone, Copy, ValueEnum)]
 pub(crate) enum DistributionTarget {
@@ -67,6 +68,20 @@ pub(crate) fn run(channel: Channel) -> Result<()> {
         None,
         None,
         &BundleVersions::of_build(None),
+        None,
+    )
+}
+
+/// Build a local production app with the installer's already-selected identity.
+pub(super) fn run_for_install(identity: &str) -> Result<()> {
+    build_bundle(
+        Channel::Production,
+        None,
+        None,
+        None,
+        None,
+        &BundleVersions::of_build(None),
+        Some(identity),
     )
 }
 
@@ -89,6 +104,7 @@ pub(crate) fn run_for_distribution(
         target,
         feed,
         &BundleVersions::of_build(build_version),
+        None,
     )
 }
 
@@ -99,6 +115,7 @@ fn build_bundle(
     target: Option<DistributionTarget>,
     feed: Option<&sparkle::Feed>,
     versions: &BundleVersions,
+    local_identity: Option<&str>,
 ) -> Result<()> {
     let root = repo_root()?;
     let sh = Shell::new()?;
@@ -190,7 +207,16 @@ fn build_bundle(
             )?;
         }
         (Channel::Production, None) | (Channel::Dev, _) => {
-            signing::local_sign_app_if_available(channel)?;
+            if let Some(identity) = local_identity {
+                signing::sign_app_with_timestamp(
+                    identity,
+                    signing::TimestampMode::None,
+                    channel,
+                    None,
+                )?;
+            } else {
+                signing::local_sign_app_if_available(channel)?;
+            }
         }
     }
     println!();
