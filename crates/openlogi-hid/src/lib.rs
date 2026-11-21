@@ -35,11 +35,11 @@ pub use host::{
     enumerate, enumerate_hid_only, enumerate_standalone, enumerator, get_backlight, get_dpi,
     get_dpi_info, get_onboard, get_pointer_scaling, get_presenter_pointer_speed,
     get_scroll_wheel_mode, get_sidetone, get_smartshift_status, list_pairing_receivers,
-    play_haptic, read_battery_raw, read_litra_state, set_dpi, set_fn_lock, set_keyboard_color,
-    set_keyboard_color_with, set_pointer_scaling, set_presenter_pointer_speed,
+    play_haptic, raw_feature_calls, read_battery_raw, read_litra_state, set_dpi, set_fn_lock,
+    set_keyboard_color, set_keyboard_color_with, set_pointer_scaling, set_presenter_pointer_speed,
     set_scroll_inversion, set_scroll_resolution, set_scroll_wheel_mode, set_sidetone,
     set_smartshift, set_smartshift_sensitivity, set_smartshift_torque, toggle_smartshift,
-    update_backlight, watch_button_spy, watch_hotplug, watch_litra,
+    update_backlight, walk_per_key_zones, watch_button_spy, watch_hotplug, watch_litra,
 };
 pub use lighting::{set_keyboard_color_on, set_keyboard_color_with_on};
 pub use probe_cache::FileProbeCacheStore;

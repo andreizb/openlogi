@@ -263,9 +263,7 @@ pub(crate) fn with_channel(
         (FlowHost::This, Some(slot)) => Some(FlowDevice::new(
             device.clone(),
             slot,
-            existing
-                .map(|entry| entry.peer_slots().clone())
-                .unwrap_or_default(),
+            existing.map_or_else(Default::default, |entry| entry.peer_slots().clone()),
         )?),
         (FlowHost::Peer(peer), slot) => {
             let (self_slot, mut peers) = match (existing, slot) {
@@ -402,7 +400,7 @@ impl AppState {
                 .map_or(identity, |device| device.key().clone());
             // A device reached on two routes has a record for each; like the
             // agent, the online, addressable one decides.
-            let online = record.online && record.route.is_some();
+            let online = record.addressable_route().is_some();
             let switchable = !record.hidpp10;
             if let Some(row) = rows.iter_mut().find(|row| row.key == key) {
                 row.online |= online;

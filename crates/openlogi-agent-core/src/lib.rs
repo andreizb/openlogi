@@ -25,6 +25,8 @@ pub mod pointer_speed;
 pub mod presenter;
 pub mod receiver_access;
 pub mod runtime;
+#[cfg(test)]
+mod test_support;
 pub mod watchers;
 
 pub use dpi::{DpiCycleState, DpiCycles};

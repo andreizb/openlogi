@@ -11,7 +11,7 @@ use gpui::{
     BoxShadow, Context, Hsla, IntoElement, ParentElement, Render, Styled, Subscription, Window,
     div, hsla, point, prelude::FluentBuilder as _, px, rgb,
 };
-use gpui_component::{Icon, IconName, Selectable as _, h_flex, slider::Slider, v_flex};
+use gpui_kit::component::{Icon, IconName, Selectable as _, h_flex, slider::Slider, v_flex};
 use openlogi_core::{
     config::LightSettings,
     device::{LightCapabilities, LightValueRange, LightValueUnit},
@@ -134,9 +134,7 @@ fn temperature_native(range: LightValueRange, settings: LightSettings) -> u16 {
 impl Render for LightPanel {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let pal = theme::palette(cx);
-        let settings = AppState::try_read(cx)
-            .map(AppState::light)
-            .unwrap_or_default();
+        let settings = AppState::try_read(cx).map_or_else(Default::default, AppState::light);
         let record = AppState::try_read(cx)
             .and_then(AppState::current_record)
             .cloned();
@@ -160,7 +158,7 @@ impl Render for LightPanel {
             || tr!("device.lighting").to_string(),
             |record| record.display_name.clone(),
         );
-        let online = record.as_ref().is_some_and(|record| record.online);
+        let online = record.as_ref().is_some_and(DeviceRecord::is_online);
         let effective_enabled = AppState::try_read(cx).is_some_and(AppState::light_enabled);
         let power = capabilities.is_some_and(|caps| caps.power);
 
@@ -240,12 +238,12 @@ fn light_hero(device_name: &str, view: LightView, pal: Palette) -> impl IntoElem
         .child(
             Toggle::new("standalone-light-toggle")
                 .selected(effective_enabled)
+                .accessibility_label(tr!("device.lighting"))
                 .icon(if effective_enabled {
                     IconName::Sun
                 } else {
                     IconName::Moon
                 })
-                .min_width(px(72.))
                 .on_change(|enabled, _window, cx| {
                     AppState::apply(cx, |state| state.commit_manual_light_power(*enabled));
                 }),
@@ -329,7 +327,7 @@ fn camera_automation(current: LightSettings, pal: Palette) -> impl IntoElement {
         .child(
             Toggle::new("standalone-light-camera-automation")
                 .selected(current.auto_camera)
-                .min_width(px(72.))
+                .accessibility_label(tr!("lighting.auto_on_with_camera"))
                 .on_change(|auto_camera, _window, cx| {
                     AppState::apply(cx, |state| {
                         let mut light = state.light();

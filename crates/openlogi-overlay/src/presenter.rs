@@ -14,12 +14,7 @@ use openlogi_ipc::PresenterOverlay;
 
 use crate::platform;
 
-const DIM: Hsla = Hsla {
-    h: 0.0,
-    s: 0.0,
-    l: 0.02,
-    a: 0.62,
-};
+const DIM: Hsla = openlogi_ui::color::neutral(0.02, 0.62);
 
 #[cfg(target_os = "macos")]
 use gpui::RenderImage;

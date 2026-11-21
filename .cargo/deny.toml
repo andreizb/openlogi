@@ -27,6 +27,12 @@ ignore = [
     # (tokio-serde 0.9 is current and binds bincode 1.x). Revisit if tarpc
     # adopts another codec — which would be a breaking protocol change.
     { id = "RUSTSEC-2025-0141", reason = "tarpc's wire codec; unmaintained-by-choice, no upgrade path" },
+    # tarpc 0.38 uses humantime only to format RPC deadlines in trace logs
+    # (client.rs and server.rs). RUSTSEC classifies this as INFO Unmaintained,
+    # affecting every version, with no patched release. Keep this specific
+    # maintenance notice visible here until tarpc replaces its formatter;
+    # vulnerability and yanked-package checks remain enabled.
+    { id = "RUSTSEC-2026-0542", reason = "tarpc deadline log formatter; maintenance notice, no patched version" },
 ]
 
 [licenses]
@@ -59,6 +65,6 @@ unknown-git = "deny"
 # that appears as `git+…` in Cargo.lock must be listed here.
 allow-git = [
     "https://github.com/AprilNEA/appicon",
-    "https://github.com/AprilNEA/gpui-kit",
+    "https://github.com/AprilNEA/gpui-tcc",
     "https://github.com/longbridge/gpui-kit",
 ]

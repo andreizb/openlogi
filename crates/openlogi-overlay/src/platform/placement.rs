@@ -165,10 +165,11 @@ fn cursor_screen(cx: &gpui::App) -> CursorScreen {
 fn positioned_window(cx: &gpui::App, edge: Pixels) -> (WindowOptions, Placement) {
     let size = Size::new(edge, edge);
     let screen = cursor_screen(cx);
-    let center = screen
-        .cursor
-        .or_else(|| screen.bounds.map(|bounds| bounds.center()))
-        .unwrap_or_default();
+    let center = screen.cursor.or_else(|| {
+        screen
+            .bounds
+            .map_or_else(Default::default, |bounds| bounds.center())
+    });
     let desired_origin = point(center.x - size.width / 2.0, center.y - size.height / 2.0);
     let origin = screen.bounds.map_or(desired_origin, |display_bounds| {
         clamp_window_origin(desired_origin, size, display_bounds)

@@ -12,7 +12,7 @@ use gpui::{
     MouseButton, ParentElement, Render, StatefulInteractiveElement as _, Styled, Subscription,
     Window, div, prelude::FluentBuilder as _, px, rgb,
 };
-use gpui_component::{
+use gpui_kit::component::{
     Disableable as _, IconName, Sizable as _,
     button::{Button, ButtonVariants},
     h_flex,
@@ -449,7 +449,7 @@ fn presenter_stage(
                         .rounded(px(48.))
                         .border_1()
                         .border_color(pal.border)
-                        .bg(pal.control_hover)
+                        .bg(pal.control)
                         .shadow_md()
                         .child(device_button(40., "•", pal))
                         .child(device_button(68., "›", pal))
@@ -1236,7 +1236,7 @@ fn presenter_control_row(
         .w_full()
         .items_center()
         .rounded(pal.control_radius)
-        .bg(pal.control_hover)
+        .bg(pal.control)
         .p(px(2.))
         .child(
             Popover::new(("presenter-control", index))

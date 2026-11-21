@@ -41,13 +41,16 @@ mod pointer_speed;
 mod report_rate;
 mod sidetone;
 mod smartshift;
+mod unit_id;
 
 pub use backlight::{get_backlight, get_backlight_on, update_backlight, update_backlight_on};
 pub use button_spy::{ButtonSpyError, ButtonSpyWatch, watch_button_spy, watch_button_spy_on};
 pub use diagnostics::{
-    FeatureEntry, FirmwareEntity, FirmwareEntityInfo, RAW_BATTERY_FEATURES, ReprogControlEntry,
-    dump_features, dump_features_on, dump_firmware_entities, dump_firmware_entities_on,
-    dump_reprog_controls, dump_reprog_controls_on, read_battery_raw, read_battery_raw_on,
+    FeatureEntry, FirmwareEntity, FirmwareEntityInfo, RAW_BATTERY_FEATURES, RAW_FEATURE_PARAMS,
+    RawFeatureAnswers, RawFeatureCall, RawFeatureReply, ReprogControlEntry, dump_features,
+    dump_features_on, dump_firmware_entities, dump_firmware_entities_on, dump_reprog_controls,
+    dump_reprog_controls_on, raw_feature_calls, raw_feature_calls_on, read_battery_raw,
+    read_battery_raw_on,
 };
 pub use disable_keys::{
     get_disable_keys, get_disable_keys_on, set_disable_keys, set_disable_keys_on,
@@ -79,8 +82,9 @@ pub use hires_wheel::{
 };
 pub use key_display::{KeyDisplay, KeyImageJpeg, key_display_for, write_key_image_on};
 pub use lighting::{
-    LightingMethod, LightingWrite, RgbControlLease, release_rgb_control, set_keyboard_color,
-    set_keyboard_color_on, set_keyboard_color_with, set_keyboard_color_with_on,
+    LightingMethod, LightingWrite, LitZone, RgbControlLease, ZoneWalkStep, release_rgb_control,
+    set_keyboard_color, set_keyboard_color_on, set_keyboard_color_with, set_keyboard_color_with_on,
+    walk_per_key_zones, walk_per_key_zones_on,
 };
 pub(crate) use litra::litra_capabilities;
 pub use litra::{
@@ -115,6 +119,7 @@ pub use smartshift::{
     get_smartshift_status, get_smartshift_status_on, set_smartshift, set_smartshift_on,
     set_smartshift_sensitivity, set_smartshift_torque, toggle_smartshift, toggle_smartshift_on,
 };
+pub use unit_id::get_unit_id_on;
 
 // commands_for_light_settings operates purely on openlogi_core config/device
 // types with no HID++ I/O, so it lives in `openlogi_core::hid::light`; this

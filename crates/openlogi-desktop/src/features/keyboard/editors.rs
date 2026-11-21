@@ -27,7 +27,7 @@ use gpui::{
     App, Entity, FontWeight, IntoElement, ParentElement, RenderOnce,
     StatefulInteractiveElement as _, Styled, Window, div, px, svg,
 };
-use gpui_component::{
+use gpui_kit::component::{
     Icon, IconName, Sizable as _,
     button::{Button, ButtonVariants},
     h_flex,
@@ -237,8 +237,7 @@ fn editor_action_row(
                     let text = view_save
                         .read(cx)
                         .text_state()
-                        .map(|s| s.read(cx).value().to_string())
-                        .unwrap_or_default();
+                        .map_or_else(Default::default, |s| s.read(cx).value().to_string());
                     let action = match kind {
                         PowerUserKind::TypeText => Action::TypeText(text),
                         PowerUserKind::RunAppleScript => Action::RunAppleScript(text),

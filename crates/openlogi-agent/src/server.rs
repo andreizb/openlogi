@@ -5,8 +5,9 @@
 //! The agent owns all device I/O, so the GUI never opens a device — it routes
 //! "apply now" / "read" commands here, and polls snapshots.
 
-mod backlight;
+pub(crate) mod backlight;
 mod haptic_restore;
+mod settings;
 
 use std::sync::{Arc, PoisonError};
 use std::time::{Duration, Instant};
@@ -139,6 +140,10 @@ impl AgentServer {
                 #[cfg(target_os = "macos")]
                 let show_in_menu_bar = config.app_settings.show_in_menu_bar;
                 let language = config.app_settings.language.clone();
+                // The menu reads the config on the main thread, from its own
+                // copy.
+                #[cfg(target_os = "macos")]
+                crate::tray::set_config(Arc::new(config.clone()));
                 match saved {
                     None => self.orchestrator.lock().await.reload_config(config),
                     Some(saved) => self
@@ -147,6 +152,7 @@ impl AgentServer {
                         .await
                         .reload_saved_config(config, revision, saved),
                 }
+                self.observable.set_config_revision(revision);
                 self.dispatcher.cancel_all_buttons();
                 // The GUI's launch-at-login toggle reaches us through this
                 // reload, so re-reconcile the autostart from the new config.
@@ -159,13 +165,10 @@ impl AgentServer {
                 // item now rather than at the next agent launch.
                 #[cfg(target_os = "macos")]
                 crate::tray::set_visible(show_in_menu_bar, app_icon);
-                // And the interface language: re-resolve the process locale
-                // (the Windows popup rebuilds per show and picks it up alone)
-                // and rebuild the macOS menu, whose titles were stamped at
-                // install.
+                // And the interface language: re-resolve the process locale.
+                // Both tray menus rebuild each time they open and pick it up
+                // alone.
                 openlogi_core::locale::activate(language.as_deref());
-                #[cfg(target_os = "macos")]
-                crate::tray::relocalize();
                 Ok(revision)
             }
             Err(error) => {
@@ -240,21 +243,11 @@ impl Agent for AgentServer {
         route: DeviceRoute,
         status: SmartShiftStatus,
     ) -> Result<(), WriteError> {
-        self.shared
-            .device(&route)
-            .run(HidppOperation::WriteSmartShift, |c| async move {
-                openlogi_hid::set_smartshift_on(&c, status).await
-            })
-            .await
+        self.shared.set_smartshift(&route, status).await
     }
 
     async fn read_dpi(self, _: Context, route: DeviceRoute) -> Result<DpiInfo, WriteError> {
-        self.shared
-            .device(&route)
-            .run(HidppOperation::ReadDpiCapabilities, |c| async move {
-                openlogi_hid::get_dpi_info_on(&c).await
-            })
-            .await
+        self.shared.read_dpi(&route).await
     }
 
     async fn read_smartshift(
@@ -262,12 +255,7 @@ impl Agent for AgentServer {
         _: Context,
         route: DeviceRoute,
     ) -> Result<SmartShiftStatus, WriteError> {
-        self.shared
-            .device(&route)
-            .run(HidppOperation::ReadSmartShift, |c| async move {
-                openlogi_hid::get_smartshift_status_on(&c).await
-            })
-            .await
+        self.shared.read_smartshift(&route).await
     }
 
     async fn read_wheel(
@@ -301,12 +289,7 @@ impl Agent for AgentServer {
         _: Context,
         route: DeviceRoute,
     ) -> Result<BacklightState, WriteError> {
-        self.shared
-            .device(&route)
-            .run(HidppOperation::ReadBacklight, |c| async move {
-                openlogi_hid::get_backlight_on(&c).await
-            })
-            .await
+        self.shared.read_backlight(&route).await
     }
 
     async fn set_presenter_pointer_speed(
@@ -327,12 +310,7 @@ impl Agent for AgentServer {
     }
 
     async fn read_fn_lock(self, _: Context, route: DeviceRoute) -> Result<FnLockState, WriteError> {
-        self.shared
-            .keyboard_device(&route)
-            .run(HidppOperation::ReadFnLock, |c| async move {
-                openlogi_hid::get_fn_lock_on(&c).await
-            })
-            .await
+        self.shared.read_fn_lock(&route).await
     }
 
     async fn observe_presenter(self, _: Context, since: Generation) -> PresenterObservation {
@@ -539,12 +517,7 @@ impl Agent for AgentServer {
         _: Context,
         route: DeviceRoute,
     ) -> Result<SidetoneLevel, WriteError> {
-        self.shared
-            .device(&route)
-            .run(HidppOperation::ReadSidetone, |c| async move {
-                openlogi_hid::get_sidetone_on(&c).await
-            })
-            .await
+        self.shared.read_sidetone(&route).await
     }
 
     async fn set_sidetone(
@@ -602,19 +575,13 @@ impl Agent for AgentServer {
         route: DeviceRoute,
         enabled: bool,
     ) -> Result<(), WriteError> {
-        self.shared
-            .hardware()
-            .apply_light(&route, LightCommand::Power(enabled))
-            .await?;
-        if !self
-            .orchestrator
-            .lock()
-            .await
-            .set_manual_light_power(&route, enabled)
-        {
-            warn!(?route, "manual light power applied without camera override");
-        }
-        Ok(())
+        orchestrator::write_manual_light_power(
+            &self.orchestrator,
+            &self.shared.hardware(),
+            &route,
+            enabled,
+        )
+        .await
     }
 
     async fn next_action_ring(self, _: Context) -> Option<ActionRingInvocation> {

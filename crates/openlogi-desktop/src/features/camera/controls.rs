@@ -18,7 +18,7 @@ use gpui::{
     App, AppContext as _, Context, IntoElement, ParentElement, Render, SharedString, Styled,
     Subscription, Task, Window, div, px,
 };
-use gpui_component::{WindowExt as _, dialog::DialogButtonProps, input::InputState, v_flex};
+use gpui_kit::component::{WindowExt as _, dialog::DialogButtonProps, input::InputState, v_flex};
 use openlogi_camera::{AutoToggle, CameraControl, ControlRange};
 use openlogi_core::config::CameraControls;
 use tracing::debug;
@@ -35,7 +35,8 @@ mod rows;
 mod tests;
 use hardware::{Cancel, Hardware, Loaded, Saved, SystemUvc, Uvc};
 use rows::{
-    control_label, control_row, from_slider, profiles_row, reset_button, section_indices, to_slider,
+    control_grid, control_label, from_slider, profiles_row, reset_button, section_indices,
+    to_slider,
 };
 
 /// How long to wait before reading a camera again after it could not be read.
@@ -577,9 +578,8 @@ impl CameraControlsPanel {
         let (Some(key), Some(uid)) = (self.key.clone(), self.uid.clone()) else {
             return;
         };
-        let custom = AppState::try_read(cx)
-            .map(|s| s.camera_profiles(&key))
-            .unwrap_or_default();
+        let custom =
+            AppState::try_read(cx).map_or_else(Default::default, |s| s.camera_profiles(&key));
 
         // Auto targets: built-ins engage every auto mode except Default, which
         // restores the device's own default states; customs use their snapshot
@@ -749,14 +749,14 @@ impl Render for CameraControlsPanel {
         if !lens.is_empty() && !image.is_empty() {
             panel = panel.child(section_label(tr!("camera.lens"), pal).mt_1());
         }
-        for ix in lens {
-            panel = panel.child(control_row(self, ix, cx));
+        if !lens.is_empty() {
+            panel = panel.child(control_grid(self, lens, cx));
         }
         if !image.is_empty() && self.sliders.len() != image.len() {
             panel = panel.child(section_label(tr!("camera.image"), pal).mt_1());
         }
-        for ix in image {
-            panel = panel.child(control_row(self, ix, cx));
+        if !image.is_empty() {
+            panel = panel.child(control_grid(self, image, cx));
         }
         panel.child(reset_button(cx))
     }

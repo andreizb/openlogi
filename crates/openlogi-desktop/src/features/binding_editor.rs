@@ -7,7 +7,7 @@ use gpui::{
     StatefulInteractiveElement as _, Styled, Window, div, prelude::FluentBuilder as _, px, rgb,
     svg,
 };
-use gpui_component::{
+use gpui_kit::component::{
     Icon, IconName, Selectable as _, button::Button, h_flex, input::InputState,
     popover::PopoverState, scroll::ScrollableElement, v_flex,
 };
@@ -113,6 +113,9 @@ pub(crate) fn action_icon_path(action: &Action) -> &'static str {
         | Action::TogglePrecisionMode
         | Action::DpiShift => "action-icons/gauge.svg",
         Action::ToggleSmartShift | Action::PresenterRecenter => "action-icons/refresh-cw.svg",
+        Action::EasySwitchChannel1 => "action-icons/square-1.svg",
+        Action::EasySwitchChannel2 => "action-icons/square-2.svg",
+        Action::EasySwitchChannel3 => "action-icons/square-3.svg",
         Action::ScrollUp | Action::NextDpiPreset => "action-icons/chevrons-up.svg",
         Action::ScrollDown | Action::PreviousDpiPreset => "action-icons/chevrons-down.svg",
         Action::HorizontalScrollLeft => "action-icons/chevrons-left.svg",
@@ -123,37 +126,10 @@ pub(crate) fn action_icon_path(action: &Action) -> &'static str {
         Action::CustomShortcut(_)
         | Action::HoldShortcut(_)
         | Action::TapKeyHoldingModifiers(_)
+        | Action::HoldModifier(_)
         | Action::TypeText(_) => "action-icons/keyboard.svg",
         Action::RunAppleScript(_) | Action::RunShellCommand(_) => "action-icons/terminal.svg",
     }
-}
-
-/// Build every category-grouped action row.
-pub(crate) fn action_rows(
-    id_prefix: &'static str,
-    current: Option<&Action>,
-    on_pick: &PickFn,
-    pal: Palette,
-) -> Vec<gpui::Div> {
-    action_rows_matching(id_prefix, current, "", on_pick, pal)
-}
-
-/// Build action rows filtered by localized action or category name.
-pub(crate) fn action_rows_matching(
-    id_prefix: &'static str,
-    current: Option<&Action>,
-    query: &str,
-    on_pick: &PickFn,
-    pal: Palette,
-) -> Vec<gpui::Div> {
-    action_rows_with(
-        id_prefix,
-        current,
-        query,
-        ActionOffer::default(),
-        on_pick,
-        pal,
-    )
 }
 
 /// What a picker offers beyond the catalog, and what of it it leaves out.
@@ -289,7 +265,14 @@ pub(crate) fn presenter_action_picker<T: 'static>(
         .child(divider(pal))
         .child(editor_scroll_list(
             "presenter-picker-scroll",
-            action_rows("presenter-action-item", current.as_ref(), &on_pick, pal),
+            action_rows_with(
+                "presenter-action-item",
+                current.as_ref(),
+                "",
+                ActionOffer::default(),
+                &on_pick,
+                pal,
+            ),
         ))
         .into_any_element()
 }
@@ -497,6 +480,7 @@ mod tests {
             Action::CustomShortcut(combo()),
             Action::HoldShortcut(combo()),
             Action::TapKeyHoldingModifiers(combo()),
+            Action::HoldModifier("Ctrl".parse().expect("Ctrl is a valid modifier")),
             Action::TypeText(String::new()),
             Action::RunShellCommand(String::new()),
             Action::RunAppleScript(String::new()),
