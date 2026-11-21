@@ -5,6 +5,10 @@ mod process;
 mod tests;
 
 use std::path::{Path, PathBuf};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 use anyhow::{Context as _, Result, bail};
 use clap::Parser;
@@ -26,6 +30,7 @@ pub(super) fn run(args: &Args) -> Result<()> {
     if !cfg!(target_os = "macos") {
         bail!("macos install requires macOS");
     }
+    let cancellation = Cancellation::listen()?;
     if !args.destination.is_absolute()
         || args
             .destination
@@ -45,6 +50,7 @@ pub(super) fn run(args: &Args) -> Result<()> {
     let identity = bundle::identity_for_install(&args.destination)?;
     let before = process::health(&args.destination).ok();
     bundle::run_for_install(&identity)?;
+    cancellation.check()?;
     let built = repo_root()?.join("target/release/bundle/osx/OpenLogi.app");
     let staged = scratch.path().join("OpenLogi.app");
     let sh = Shell::new()?;
@@ -52,10 +58,13 @@ pub(super) fn run(args: &Args) -> Result<()> {
     identity::verify(&staged, Channel::Production, Component::VARIANTS)?;
     cmd!(sh, "codesign --verify --deep --strict {staged}").run()?;
     bundle::verify_update_identity(&args.destination, &staged)?;
+    cancellation.check()?;
     process::stop(&args.destination)?;
     let replacement = Replacement::swap(scratch, &args.destination)?;
-    let result = process::start(&args.destination)
-        .and_then(|()| process::verify(&args.destination, before.as_ref()));
+    let result = cancellation
+        .check()
+        .and_then(|()| process::start(&args.destination))
+        .and_then(|()| process::verify(&args.destination, before.as_ref(), &cancellation));
     if let Err(error) = result {
         let _ = process::stop(&args.destination);
         replacement.rollback().with_context(|| {
@@ -76,6 +85,29 @@ pub(super) fn run(args: &Args) -> Result<()> {
 }
 
 use strum::VariantArray as _;
+
+#[derive(Clone, Default)]
+struct Cancellation(Arc<AtomicBool>);
+
+impl Cancellation {
+    fn listen() -> Result<Self> {
+        let cancellation = Self::default();
+        let handler = cancellation.clone();
+        ctrlc::try_set_handler(move || handler.cancel())?;
+        Ok(cancellation)
+    }
+
+    fn cancel(&self) {
+        self.0.store(true, Ordering::Relaxed);
+    }
+
+    fn check(&self) -> Result<()> {
+        if self.0.load(Ordering::Relaxed) {
+            bail!("installation interrupted");
+        }
+        Ok(())
+    }
+}
 
 /// Owns the previous bundle until successful runtime verification makes it disposable.
 struct Replacement {

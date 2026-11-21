@@ -11020,6 +11020,7 @@ dependencies = [
  "base64",
  "clap",
  "comfy-table",
+ "ctrlc",
  "flate2",
  "fs-err",
  "gpui-updater-release",

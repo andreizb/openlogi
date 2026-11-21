@@ -44,3 +44,19 @@ fn a_failed_first_install_leaves_no_unverified_app() {
     drop(Replacement::swap(staged(parent.path()), &app).unwrap());
     assert!(!app.exists());
 }
+
+#[test]
+fn interruption_after_replacement_restores_the_previous_app() {
+    let parent = tempfile::tempdir().unwrap();
+    let app = parent.path().join("OpenLogi.app");
+    fs_err::create_dir(&app).unwrap();
+    fs_err::write(app.join("version"), "old").unwrap();
+    let cancellation = Cancellation::default();
+    let replacement = Replacement::swap(staged(parent.path()), &app).unwrap();
+    cancellation.cancel();
+    cancellation
+        .check()
+        .expect_err("interruption must stop installation");
+    replacement.rollback().unwrap();
+    assert_eq!(fs_err::read_to_string(app.join("version")).unwrap(), "old");
+}

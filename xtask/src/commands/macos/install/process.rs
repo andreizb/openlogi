@@ -128,10 +128,15 @@ fn permissions_preserved(before: Option<&Health>, after: &Health) -> bool {
     })
 }
 
-pub(super) fn verify(app: &Path, before: Option<&Health>) -> Result<()> {
+pub(super) fn verify(
+    app: &Path,
+    before: Option<&Health>,
+    cancellation: &super::Cancellation,
+) -> Result<()> {
     let started = Instant::now();
     let mut reason = String::from("waiting for the new agent");
     while started.elapsed() < START_TIMEOUT {
+        cancellation.check()?;
         match health(app) {
             Ok(after)
                 if after.agent_version == env!("CARGO_PKG_VERSION")
