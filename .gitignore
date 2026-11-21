@@ -74,6 +74,19 @@ node_modules/
 # macOS finder metadata
 .DS_Store
 
+# Local credentials, diagnostic output and profiling artifacts.
+.env
+.env.*
+!.env.example
+*.log
+*.profraw
+*.profdata
+*.p12
+*.pfx
+*.provisionprofile
+*.mobileprovision
+/logs/
+
 # Compiled icons — `cargo xtask macos icon` rebuilds them from the Icon
 # Composer documents in `design/icon` on every bundle build. `AppIcon.icns` is
 # the exception: `cargo bundle` reads it straight from the manifest, so it stays

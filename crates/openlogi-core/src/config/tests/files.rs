@@ -155,7 +155,7 @@ fn spotlight_preview_v8_loads_and_migrates_its_transport_scoped_key() {
     let path = dir.path().join("config.toml");
     let original = r#"schema_version = 8
 
-[devices."direct:046d:b503:unit:0bea56a1".presenter]
+[devices."direct:046d:b503:unit:01020304".presenter]
 effect = "Magnify"
 magnification = 2
 "#;
@@ -165,7 +165,7 @@ magnification = 2
     assert_eq!(config.schema_version, SCHEMA_VERSION);
     let device = config
         .devices
-        .get("unit:0bea56a1")
+        .get("unit:01020304")
         .expect("preview device key is canonicalized");
     assert_eq!(
         device.presenter.effect,
